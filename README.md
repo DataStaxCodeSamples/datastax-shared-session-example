@@ -28,3 +28,7 @@ To create the a multi data center cluster for DSE with a standard Cassandra, Ana
 To run the insert
 
     mvn clean compile exec:java -Dexec.mainClass="com.datastax.sharedsession.Main" -DnoOfThreads=5
+
+You can also pass in the no of messages to send and the number of followers to sent to 
+
+	mvn clean compile exec:java -Dexec.mainClass="com.datastax.sharedsession.Main" -DnoOfThreads=10 -DcontactPoints=cassandra1,cassandra2 -DmessageCount=50 -DnoOfFollowers=10000
