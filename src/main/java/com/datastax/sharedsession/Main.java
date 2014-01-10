@@ -1,8 +1,8 @@
 package com.datastax.sharedsession;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +16,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.utils.UUIDs;
 
 public class Main {
 
@@ -24,7 +25,7 @@ public class Main {
 	private static String tableName = keyspaceName + ".timeline";
 
 	static final String INSERT_INTO_FOLLOWERS = "Insert into " + tableName
-			+ " (userid, follower_id, message) values (?,?,?);";
+			+ " (userid, time, follower_id, message) values (?,?,?,?);";
 
 	private PreparedStatement insertStmt;
 
@@ -38,7 +39,7 @@ public class Main {
 		int noOfThreads = Integer.parseInt(noOfThreadsStr);
 		
 		//Create shared queue 
-		Queue<SharedMessage> queue = new ConcurrentLinkedQueue<SharedMessage>();
+		ConcurrentLinkedQueue<SharedMessage> queue = new ConcurrentLinkedQueue<SharedMessage>();
 		ExecutorService executor = Executors.newFixedThreadPool(noOfThreads);
 
 		//Set up cluster and session
@@ -101,9 +102,9 @@ public class Main {
 	class FollowerWriter implements Runnable {
 
 		private Session session;
-		private Queue<SharedMessage> queue;
+		private ConcurrentLinkedQueue<SharedMessage> queue;
 
-		public FollowerWriter(Session session, Queue<SharedMessage> queue) {
+		public FollowerWriter(Session session, ConcurrentLinkedQueue<SharedMessage> queue) {
 			this.session = session;
 			this.queue = queue;
 		}
@@ -121,7 +122,7 @@ public class Main {
 
 		private void insertMessage(SharedMessage message) {
 			BoundStatement boundStmt = new BoundStatement(insertStmt);
-			boundStmt.bind(message.getFollowerId(), message.getUserid(), message.getMessage()	);
+			boundStmt.bind(message.getFollowerId(), UUIDs.timeBased(), message.getUserid(), message.getMessage() + " " + new Date().toString());
 			session.execute(boundStmt);
 		}
 	}
