@@ -8,7 +8,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.mortbay.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datastax.demo.utils.PropertyHelper;
 import com.datastax.demo.utils.Timer;
@@ -20,6 +21,8 @@ import com.datastax.driver.core.utils.UUIDs;
 
 public class Main {
 
+	private static Logger logger = LoggerFactory.getLogger(Main.class);
+	
 	private Session session;
 	private static String keyspaceName = "datastax_shared_session_demo";
 	private static String tableName = keyspaceName + ".timeline";
@@ -62,30 +65,27 @@ public class Main {
 		for (int i=0; i < messageCount; i++){
 			
 			//Simulate a message going to thousands of followers. The message needs to 
-			//be inserted in each of the follower timelines.			
-			
+			//be inserted in each of the follower timelines.						
 			for (SharedMessage sharedMessage : followers){
 				queue.offer(sharedMessage);
 			}
 		}
 		
 		while(!queue.isEmpty()){
-			Log.info("Messages left to send " + queue.size());
+			logger.info("Messages left to send " + queue.size());
 			
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			sleep(1);
 		}
 		
 		System.out.println("Shared Session test finished.");
 		timer.end();
 		
-		Log.info("Completed " + messageCount + " messages to " +noOfFollowers + " followers in " + timer.getTimeTakenSeconds() + "secs" 
+		logger.info("Completed " + messageCount + " messages to " +noOfFollowers + " followers in " + timer.getTimeTakenSeconds() + "secs" 
 				+ " with " + noOfThreads + " threads.");
 
-		cluster.shutdown();
+		sleep(1);
+		
+		cluster.close();
 		System.exit(0);
 	}
 
@@ -124,6 +124,14 @@ public class Main {
 			BoundStatement boundStmt = new BoundStatement(insertStmt);
 			boundStmt.bind(message.getFollowerId(), UUIDs.timeBased(), message.getUserid(), message.getMessage() + " " + new Date().toString());
 			session.execute(boundStmt);
+		}
+	}
+	
+	private void sleep(int seconds) {
+		try {
+			Thread.sleep(seconds * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 
